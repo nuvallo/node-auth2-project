@@ -1,14 +1,10 @@
 const router = require("express").Router();
-
 const bcrypt = require("bcryptjs");
-
 const jwt = require("jsonwebtoken");
-
 const Users = require("../users/users-model.js");
-
 const secrets = require("../api/secrets.js");
 
-async function generateToken(user) {
+function generateToken(user) {
   const payload = {
     userId: user.id,
 
@@ -21,47 +17,40 @@ async function generateToken(user) {
     expiresIn: "1d",
   };
 
-  await jwt.sign(payload, secret, options);
+  return jwt.sign(payload, secret, options);
 }
 
-router.post("/register", (req, res) => {
-  let user = req.body;
+router.post("/register", async (req, res) => {
+  try {
+    let userData = req.body;
+    const user = await Users.add(userData);
+    const rounds = process.env.HASH_ROUNDS || 8;
 
-  const rounds = process.env.HASH_ROUNDS || 8;
+    const hash = bcrypt.hashSync(user.password, rounds);
+    user.password = hash;
 
-  const hash = bcrypt.hashSync(user.password, rounds);
-
-  user.password = hash;
-
-  Users.add(user)
-
-    .then((saved) => {
-      res.status(201).json(saved);
-    })
-
-    .catch((error) => {
-      res.status(500).json({ errorMessage: error.message });
-    });
+    res.status(201).json(user);
+  } catch (error) {
+    res.status(500).json({ errorMessage: error.message });
+  }
 });
 
-router.post("/login", (req, res) => {
-  let { username, password } = req.body;
+router.post("/login", async (req, res) => {
+  try {
+    let { username, password } = req.body;
 
-  Users.findBy({ username })
+    const user = await Users.findBy({ username }).first();
 
-    .then(([user]) => {
-      if (user && bcrypt.compareSync(password, user.password)) {
-        const token = generateToken(user);
+    if (user && bcrypt.compareSync(password, user.password)) {
+      const token = generateToken(user);
 
-        res.status(200).json({ message: "Successfully logged in!", token });
-      } else {
-        res.status(401).json({ message: "Incorrect password." });
-      }
-    })
-
-    .catch((err) => {
-      res.status(500).json({ errorMessage: err.message });
-    });
+      res.status(200).json({ message: "Successfully logged in!", token });
+    } else {
+      res.status(401).json({ message: "Incorrect password." });
+    }
+  } catch (error) {
+    res.status(500).json({ errorMessage: err.message });
+  }
 });
 
 module.exports = router;

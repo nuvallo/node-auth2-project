@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 const secrets = require("../api/secrets.js");
 
 module.exports = (req, res, next) => {
-  const token = req.headers.authorization.split(" ")[1];
+  const token = req.headers.authorization;
 
   const secret = secrets.jwtSecret;
 

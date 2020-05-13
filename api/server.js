@@ -1,6 +1,5 @@
 const express = require("express");
 const helmet = require("helmet");
-const dotenv = require("dotenv");
 
 const usersRouter = require("../users/users-router.js");
 const authRouter = require("../auth/auth-router.js");
